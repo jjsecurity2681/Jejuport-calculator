@@ -509,7 +509,7 @@
 
       <div class="card" style="display:none;">
         <h2><span class="num">3</span>데이터 저장 / 불러오기</h2>
-        <div class="hint">이 페이지는 브라우저에 데이터를 자동 저장하지 않습니다. 작업한 내용을 파일로 내보내 보관하고, 다음에 방문할 때 불러오세요.</div>
+        <div class="hint">이 브라우저에 자동으로 저장됩니다. 다른 기기·다른 브라우저로 옮기고 싶을 때는 아래에서 파일로 내보내거나 불러올 수 있습니다.</div>
         <div class="io-row">
           <button class="btn secondary" id="exportBtn">JSON 파일로 내보내기</button>
           <button class="btn ghost" id="importBtn">JSON 파일 불러오기</button>
@@ -693,6 +693,25 @@ function breaksHolidayCore(ov, type){
   return HOLIDAY_CORE_SEGMENTS.some(seg => overlapMinutes(c.s, c.e, seg.start, seg.end) > 0);
 }
 
+/* ---------------- 브라우저 자동 저장 (이 기기·이 브라우저에만 저장됨) ---------------- */
+const STORAGE_KEY = "otcalc_state_v1";
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }catch(e){ /* 저장 실패해도 앱 사용에는 지장 없음 */ }
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      state = Object.assign(state, data);
+      return true;
+    }
+  }catch(e){ /* 저장된 데이터가 없거나 읽기 실패 시 기본값 사용 */ }
+  return false;
+}
+
 let viewYear, viewMonth;     // calendar view (viewMonth 0-11)
 let selectedDate = null;
 
@@ -868,6 +887,7 @@ document.getElementById("applyCycle").addEventListener("click", ()=>{
   document.getElementById("cycleStatus").textContent = "스케줄이 적용되었습니다.";
   renderCalendar();
   renderSummary();
+  saveState();
 });
 
 /* ---------------- Tab A: holidays ---------------- */
@@ -890,6 +910,7 @@ function renderHolidayList(){
       renderHolidayList();
       renderCalendar();
       renderSummary();
+      saveState();
     });
     row.appendChild(del);
     el.appendChild(row);
@@ -905,6 +926,7 @@ document.getElementById("addHoliday").addEventListener("click", ()=>{
   renderHolidayList();
   renderCalendar();
   renderSummary();
+  saveState();
 });
 
 /* ---------------- Export / Import ---------------- */
@@ -938,6 +960,7 @@ document.getElementById("importFile").addEventListener("change", (e)=>{
       renderCalendar();
       renderSummary();
       document.getElementById("cycleStatus").textContent = "데이터를 불러왔습니다.";
+      saveState();
     }catch(err){
       alert("파일을 읽는 중 오류가 발생했습니다.");
     }
@@ -1156,6 +1179,7 @@ function setOverrideType(dateStr, type, clickedBtn){
   absentBlock.style.display = shiftType ? "block" : "none";
   renderCalendar();
   renderSummary();
+  saveState();
 }
 
 document.getElementById("saveDay").addEventListener("click", ()=>{
@@ -1179,6 +1203,7 @@ document.getElementById("saveDay").addEventListener("click", ()=>{
   }
   renderCalendar();
   renderSummary();
+  saveState();
 });
 document.getElementById("closeDay").addEventListener("click", ()=>{
   selectedDate = null;
@@ -1229,6 +1254,7 @@ function applyRankPay(){
   document.getElementById("rateNight").value = state.rates.night;
   document.getElementById("rateHoliday").value = state.rates.holiday;
   renderSummary();
+  saveState();
 }
 
 payYearSel.addEventListener("change", ()=>{
@@ -1242,6 +1268,7 @@ payYearSel.addEventListener("change", ()=>{
     state.rates.night = parseFloat(document.getElementById("rateNight").value) || 0;
     state.rates.holiday = parseFloat(document.getElementById("rateHoliday").value) || 0;
     renderSummary();
+    saveState();
   });
 });
 
@@ -1340,10 +1367,15 @@ function renderSummary(){
 
 /* ---------------- Init ---------------- */
 function init(){
-  state.holidays = defaultHolidays();
+  state.holidays = defaultHolidays(); // 기본값 먼저 채우고
+  loadState();                        // 저장된 값이 있으면 덮어씀(없으면 기본값 유지)
+
   const today = new Date();
   viewYear = today.getFullYear();
   viewMonth = today.getMonth();
+
+  cycleLengthSel.value = state.cycleLength;
+  startDateInput.value = state.startDate || "";
 
   buildCycleGrid();
   renderHolidayList();
