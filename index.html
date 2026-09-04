@@ -1311,10 +1311,11 @@ function renderSummary(){
   const totalHours = dayShiftHours + nightShiftHours;                                // 총근무시간
 
   const otHours = Math.max(0, totalHours - baseHours - holidayHoursWorked);          // 시간외근무시간
-  const otPay = otHours * state.rates.ot;
-  const nightPay = nightPremiumHours * state.rates.night;
+  const truncate10 = (n) => Math.floor(n/10)*10; // 1원 단위 절삭(10원 미만 버림)
+  const otPay = truncate10(otHours * state.rates.ot);
+  const nightPay = truncate10(nightPremiumHours * state.rates.night);
   const holidayHourlyRate = state.rates.holiday / 8;
-  const holidayPay = holidayHoursWorked * holidayHourlyRate;
+  const holidayPay = truncate10(holidayHoursWorked * holidayHourlyRate);
   const totalPay = otPay + nightPay + holidayPay;
 
   const table = document.getElementById("summaryTable");
